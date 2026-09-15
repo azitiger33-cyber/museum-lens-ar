@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#101419" />
+  <title>Museum Lens — 3D AR Museum Tour</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    :root { --ink:#101419; --paper:#f7f1e4; --muted:#c6c9c8; --gold:#e2b45a; --aqua:#66c5be; --line:rgba(247,241,228,.16); }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:#080b0e; color:var(--paper); font-family:Arial,Helvetica,sans-serif; }
+    button { font:inherit; }
+    .app { width:min(100%,540px); min-height:100svh; margin:auto; background:linear-gradient(150deg,#101419,#242b2d); overflow:hidden; position:relative; }
+    .screen { display:none; min-height:100svh; padding:24px; flex-direction:column; }
+    .screen.active { display:flex; }
+    .hero { justify-content:flex-end; background:radial-gradient(circle at 75% 18%,rgba(226,180,90,.23),transparent 27%),radial-gradient(circle at 17% 59%,rgba(102,197,190,.18),transparent 36%),linear-gradient(145deg,#101419,#242b2d); }
+    .eyebrow { color:var(--gold); font-weight:bold; letter-spacing:.14em; text-transform:uppercase; font-size:.72rem; }
+    h1,h2,h3 { font-family:Georgia,'Times New Roman',serif; line-height:1.06; margin:10px 0; }
+    h1 { font-size:clamp(2.8rem,14vw,4.6rem); } h2 { font-size:2rem; } h3 { font-size:1.25rem; }
+    p { color:var(--muted); line-height:1.55; } .hero p { max-width:34ch; }
+    .button { border:1px solid transparent; min-height:52px; padding:13px 16px; border-radius:14px; cursor:pointer; font-weight:700; }
+    .primary { background:var(--gold); color:#30220d; } .secondary { background:rgba(255,255,255,.08); color:white; border-color:var(--line); } .outline { background:transparent; color:white; border-color:var(--line); }
+    .button-row { display:grid; gap:10px; margin-top:18px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:20px; }
+    .brand { font-weight:bold; display:flex; align-items:center; gap:8px; }.lens { width:28px;height:28px;border:3px solid var(--gold);border-radius:50%;position:relative; }.lens:after{content:"";position:absolute;width:10px;height:3px;background:var(--gold);right:-8px;bottom:-4px;transform:rotate(45deg);border-radius:3px}.step{font-size:.8rem;color:var(--muted)}
+    .instruction { background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:15px;padding:14px;margin:4px 0 18px;line-height:1.45; }
+    .cards { display:grid;gap:14px; }.card { color:white;text-align:left;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:20px;padding:17px;cursor:pointer;display:grid;grid-template-columns:82px 1fr;gap:14px;align-items:center; }.card p{font-size:.88rem;margin:5px 0 0}.card small{color:var(--gold);font-weight:bold}.preview{width:82px;height:102px;border-radius:12px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.18)}
+    .stone-preview{background:linear-gradient(135deg,#4b504b,#afa084 53%,#4d4b42)}.stone-preview:after{content:"𓀀 𓁐\A 𓂀 𓃀\A 𓄿 𓆣";white-space:pre;position:absolute;inset:17px 12px;color:rgba(20,20,18,.75);font:15px Georgia;line-height:1.5}.mona-preview{background:linear-gradient(135deg,#706048 0 45%,#8c9a7e 45%)}.mona-preview:after{content:"";position:absolute;left:28px;top:16px;width:29px;height:44px;border-radius:48% 48% 42% 42%;background:#c8a27c;box-shadow:0 29px 0 10px #40352b}.mona-preview:before{content:"";position:absolute;z-index:1;left:23px;top:8px;width:40px;height:34px;background:#332d28;border-radius:52% 52% 40% 40%}
+    .viewer { padding:0; background:#101419; }.viewer-top{position:absolute;z-index:4;top:max(18px,env(safe-area-inset-top));left:18px;right:18px;display:flex;justify-content:space-between;align-items:center}.back{width:39px;height:39px;border-radius:50%;border:1px solid var(--line);background:rgba(0,0,0,.35);color:#fff;font-size:1.1rem;cursor:pointer}.badge{background:rgba(0,0,0,.5);backdrop-filter:blur(8px);padding:8px 10px;border-radius:999px;font-size:.74rem;border:1px solid rgba(255,255,255,.2)}
+    model-viewer { width:100%; height:63svh; background:radial-gradient(circle at 48% 25%,#4e5a5b,#13191d 72%); --poster-color:transparent; }.viewer-bottom{margin-top:auto;padding:16px 18px max(18px,env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(16,20,25,.65),#101419 20%)}.object-name{border:1px solid var(--line);background:rgba(255,255,255,.06);border-radius:15px;padding:13px}.object-name strong{font-family:Georgia,serif;font-size:1.1rem;display:block}.object-name span{font-size:.8rem;color:var(--muted);display:block;margin-top:3px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.actions button{min-height:50px;border-radius:13px;border:1px solid transparent;font-weight:bold;cursor:pointer}.ar{background:var(--gold);color:#33240e}.details{background:rgba(255,255,255,.08);color:white;border-color:var(--line)!important}
+    .modal{display:none;position:fixed;z-index:10;inset:0;padding:18px;align-items:flex-end;background:rgba(0,0,0,.62)}.modal.show{display:flex}.modal-card{width:min(100%,540px);margin:auto;background:var(--paper);color:#182024;border-radius:24px 24px 14px 14px;padding:22px;max-height:82svh;overflow:auto}.modal-card p{color:#455257}.close{float:right;width:34px;height:34px;border:0;border-radius:50%;background:#e6dfd1;cursor:pointer;font-size:1.1rem}.tag{display:inline-block;background:#ebdfbd;color:#5b4314;font-size:.7rem;font-weight:bold;letter-spacing:.07em;text-transform:uppercase;border-radius:999px;padding:5px 8px}.hotspots{display:grid;gap:8px;margin-top:14px}.hotspots button,.decode button{padding:13px;text-align:left;border-radius:12px;border:1px solid #d7cdbb;background:white;color:#243035;cursor:pointer}.decode{display:grid;gap:9px;margin:14px 0}.result{display:none;background:#d8efe9;border-radius:12px;padding:12px;color:#1c413d;margin-top:10px}.result.show{display:block}.footer-note{font-size:.78rem;color:#9ca5a4;margin-top:auto;padding-top:18px}
+    @media(min-width:700px){.app{min-height:94vh;margin-top:3vh;border-radius:28px;box-shadow:0 20px 70px rgba(0,0,0,.45)}.screen{min-height:94vh}model-viewer{height:59vh}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="screen hero active" id="welcome">
+      <div class="eyebrow">QR-accessed 3D AR experience</div><h1>Museum<br>Lens</h1><h2>Stories Beyond the Glass</h2>
+      <p>Explore two famous museum pieces as interactive 3D exhibits. On a supported phone, place each exhibit into your real space with AR.</p>
+      <div class="button-row"><button class="button primary" onclick="show('choose')">Start Museum Tour</button></div>
+      <p class="footer-note">Tip: after selecting an exhibit, tap “View in AR” and point your phone at a clear floor or table.</p>
+    </section>
+
+    <section class="screen" id="choose">
+      <div class="topbar"><div class="brand"><span class="lens"></span> Museum Lens</div><span class="step">1 of 3</span></div>
+      <div class="eyebrow">Choose an exhibit</div><h2>Which story will you explore?</h2>
+      <div class="instruction"><strong>3D and AR:</strong> Rotate the model with one finger. Pinch to zoom. Tap <em>View in AR</em> to place it in your real environment on a supported phone.</div>
+      <div class="cards">
+        <button class="card" onclick="openExhibit('stone')"><span class="preview stone-preview"></span><span><small>British Museum</small><strong>The Rosetta Stone</strong><p>A stylised 3D artefact revealing three ancient writing systems.</p></span></button>
+        <button class="card" onclick="openExhibit('mona')"><span class="preview mona-preview"></span><span><small>Musée du Louvre</small><strong>Mona Lisa</strong><p>A framed gallery artwork revealing details hidden in plain sight.</p></span></button>
+      </div>
+      <div class="button-row"><button class="button outline" onclick="show('welcome')">Back</button></div>
+    </section>
+
+    <section class="screen viewer" id="viewer">
+      <div class="viewer-top"><button class="back" onclick="show('choose')">←</button><span class="badge">3D VIEWER + AR</span></div>
+      <model-viewer id="model" camera-controls auto-rotate shadow-intensity="1" exposure="1" ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor" alt="Interactive 3D museum exhibit">
+        <button slot="ar-button" id="arButton" class="ar-slot">View in AR</button>
+      </model-viewer>
+      <div class="viewer-bottom"><div class="object-name"><strong id="title"></strong><span id="subtitle"></span></div><div class="actions"><button class="ar" onclick="launchAR()">View in AR</button><button class="details" onclick="openDetails()">Explore details</button></div></div>
+    </section>
+
+    <section class="screen" id="finish">
+      <div class="topbar"><div class="brand"><span class="lens"></span> Museum Lens</div><span class="step">3 of 3</span></div><div class="eyebrow">Tour complete</div><h2>You looked beyond the surface.</h2><p>You used 3D and AR to explore how objects preserve stories, ideas and artistic choices across time.</p><div class="instruction"><strong>Reflection:</strong><br>Which exhibit would you like to investigate further, and why?</div><div class="button-row"><button class="button primary" onclick="show('choose')">Explore Again</button><button class="button secondary" onclick="show('welcome')">Finish</button></div></section>
+  </main>
+  <div class="modal" id="modal"><div class="modal-card"><button class="close" onclick="closeModal()">×</button><div id="modalContent"></div></div></div>
+
+  <script>
+    let current='stone';
+    const exhibits={
+      stone:{ title:'The Rosetta Stone', subtitle:'British Museum · stylised learning model',
+        // Replace these two files with your own .glb and optional .usdz models after uploading them beside index.html.
+        model:'rosetta-stone.glb', ios:'rosetta-stone.usdz',
+        details:[['Hieroglyphs','The upper text uses Egyptian hieroglyphs, signs traditionally used for formal and sacred writing.'],['Demotic script','The middle text is Demotic, a script used for everyday writing in ancient Egypt.'],['Ancient Greek','The lower text is Ancient Greek. Because scholars could read it, they could compare the same message and begin interpreting the Egyptian scripts.']]
+      },
+      mona:{ title:'Mona Lisa Gallery Frame', subtitle:'Musée du Louvre · stylised framed learning model',
+        model:'mona-lisa-frame.glb', ios:'mona-lisa-frame.usdz',
+        details:[['The smile','The smile is subtle and can appear different depending on where the visitor focuses their attention.'],['The hands','The carefully posed hands make the portrait feel calm, balanced and realistic.'],['The landscape','The distant landscape builds depth and atmosphere behind the figure.']]
+      }
+    };
+    function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');}
+    function openExhibit(id){current=id;const x=exhibits[id],m=document.getElementById('model');document.getElementById('title').textContent=x.title;document.getElementById('subtitle').textContent=x.subtitle;m.setAttribute('src',x.model);m.setAttribute('ios-src',x.ios);m.setAttribute('alt',x.title+' interactive 3D model');show('viewer');}
+    function launchAR(){const m=document.getElementById('model');if(m.canActivateAR){m.activateAR();}else{document.getElementById('modalContent').innerHTML='<span class="tag">AR unavailable</span><h2>Use the 3D view</h2><p>This device or browser cannot launch AR right now. You can still rotate, zoom and explore the 3D model on this page.</p><p>For AR, try a recent Android phone with Google Play Services for AR, or an iPhone/iPad that supports Quick Look.</p>';document.getElementById('modal').classList.add('show');}}
+    function openDetails(){const x=exhibits[current];let body=`<span class="tag">Interactive museum labels</span><h2>${x.title}</h2><p>Choose a detail to reveal its story.</p><div class="hotspots">`;x.details.forEach((d,i)=>body+=`<button onclick="showDetail(${i})"><strong>${d[0]}</strong><br><span>Tap to reveal</span></button>`);body+='</div>';if(current==='stone')body+='<div class="button-row"><button class="button primary" onclick="decode()">Decode the Message</button><button class="button secondary" onclick="show(\'finish\');closeModal()">Finish tour</button></div>';else body+='<div class="button-row"><button class="button primary" onclick="show(\'finish\');closeModal()">Finish tour</button></div>';document.getElementById('modalContent').innerHTML=body;document.getElementById('modal').classList.add('show');}
+    function showDetail(i){const d=exhibits[current].details[i];document.getElementById('modalContent').innerHTML=`<span class="tag">AR detail</span><h2>${d[0]}</h2><p>${d[1]}</p><p><strong>Design purpose:</strong> this overlay gives the visitor a short explanation without replacing the real object or 3D model.</p><div class="button-row"><button class="button primary" onclick="openDetails()">More details</button><button class="button secondary" onclick="closeModal()">Return to model</button></div>`;}
+    function decode(){document.getElementById('modalContent').innerHTML=`<span class="tag">Mini interaction</span><h2>Decode the Message</h2><p>Which text on the Rosetta Stone helped scholars begin interpreting Egyptian hieroglyphs?</p><div class="decode"><button onclick="answer(this,false)">Egyptian hieroglyphs</button><button onclick="answer(this,false)">Demotic script</button><button onclick="answer(this,true)">Ancient Greek</button></div><div class="result" id="result"></div>`;}
+    function answer(b,correct){document.querySelectorAll('.decode button').forEach(x=>x.disabled=true);b.style.background=correct?'#d8efe9':'#f6d6ce';const r=document.getElementById('result');r.innerHTML=correct?'<strong>Correct.</strong> Scholars could already read Ancient Greek and compare it with the other two versions of the decree.':'<strong>Not quite.</strong> Ancient Greek was already understood, allowing scholars to compare the texts.';r.classList.add('show');}
+    function closeModal(){document.getElementById('modal').classList.remove('show');}
+    document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+  </script>
+</body>
+</html>
